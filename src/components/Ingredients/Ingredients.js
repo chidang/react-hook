@@ -1,32 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useReducer, useState, useEffect, useCallback } from 'react';
 
 import IngredientForm from './IngredientForm';
 import IngredientList from './IngredientList';
 import ErrorModal from '../UI/ErrorModal';
 import Search from './Search';
 
+const ingredientReducer = (currentIngredients, action) => {
+  switch (action.type) {
+    case 'SET':
+      return action.ingredients;
+    case 'ADD':
+      return [...currentIngredients, action.ingredient];
+    case 'DELETE':
+      return currentIngredients.filterlter(ing => ing.id !== action.id);
+    default:
+      throw new Error('Should not get there!');
+  }
+}
+
 const Ingredients = () => {
-  const [ userIngredients, setUserIngredients ] = useState([]);
+  const [userIngredients, dispatch] = useReducer(ingredientReducer, []);
+  // const [ userIngredients, setUserIngredients ] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState();
 
   useEffect(() => {
-    fetch('https://react-hook-e5c58.firebaseio.com/ingredients.json').then(response => response.json()).then((responseData) => {
-      const loadedIngredients = [];
-      for ( const key in responseData ) {
-        loadedIngredients.push({
-          id: key,
-          title: responseData[key].title,
-          amount: responseData[key].amount
-        });
-      }
-      setUserIngredients(loadedIngredients);
-    });
-  }, []);
+    console.log('RENDERING INGREDIENTS', userIngredients);
+  }, [userIngredients]);
 
   const filterIngredientsHandler = useCallback(filterIngredients => {
-    setUserIngredients(filterIngredients);
-  }, [setUserIngredients])
+    // setUserIngredients(filterIngredients);
+    dispatch({ type: 'SET', ingredients: filterIngredients })
+  }, [])
 
   const addIngredientHandler = ingredient => {
     setIsLoading(true);
@@ -38,16 +43,20 @@ const Ingredients = () => {
       setIsLoading(false);
       return response.json();
     }).then((responseData) => {
-      setUserIngredients(prevIngredients => [
-        ...prevIngredients, 
-        {
-          id: responseData.name, ...ingredient
-        }
-      ]);
-    }).catch( error => {
+      // setUserIngredients(prevIngredients => [
+      //   ...prevIngredients, 
+      //   {
+      //     id: responseData.name, ...ingredient
+      //   }
+      // ]);
+      dispatch({
+        type: 'ADD',
+        ingredient: { id: responseData.name, ...ingredient }
+      })
+    }).catch(error => {
       setError('Something went wrong: ' + error.message);
     });
-    
+
   };
 
   const removeIngredientHandler = ingredientId => {
@@ -56,9 +65,10 @@ const Ingredients = () => {
       method: 'DELETE'
     }).then(response => {
       setIsLoading(false);
-      setUserIngredients(prevIngredients => 
-        prevIngredients.filter(ingredient => ingredient.id !== ingredientId)
-      );
+      // setUserIngredients(prevIngredients => 
+      //   prevIngredients.filter(ingredient => ingredient.id !== ingredientId)
+      // );
+      dispatch({ type: 'DELETE', id: ingredientId });
     })
   };
 
@@ -76,8 +86,8 @@ const Ingredients = () => {
       />
 
       <section>
-        <Search onLoadIngredients={filterIngredientsHandler}/>
-        <IngredientList ingredients={userIngredients} onRemoveItem={removeIngredientHandler}/>
+        <Search onLoadIngredients={filterIngredientsHandler} />
+        <IngredientList ingredients={userIngredients} onRemoveItem={removeIngredientHandler} />
       </section>
     </div>
   );
