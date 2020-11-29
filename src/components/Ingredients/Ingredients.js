@@ -44,10 +44,14 @@ const Ingredients = () => {
   };
 
   const removeIngredientHandler = ingredientId => {
-    setUserIngredients(prevIngredients => 
-      prevIngredients.filter(ingredient => ingredient.id !== ingredientId)
-    );
-  }
+    fetch(`https://react-hook-e5c58.firebaseio.com/ingredients/${ingredientId}.json`, {
+      method: 'DELETE'
+    }).then(response => {
+      setUserIngredients(prevIngredients => 
+        prevIngredients.filter(ingredient => ingredient.id !== ingredientId)
+      );
+    })
+  };
 
   return (
     <div className="App">
